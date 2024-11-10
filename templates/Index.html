@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Classification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #BDA2DF; /* Background color */
+            color: #333;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 20px; /* Increased margin */
+        }
+        video {
+            width: 60%;
+            margin-top: 20px;
+            border: 1px solid #BDA2DF;
+            border-radius: 8px;
+        }
+        .prediction-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .confidence {
+            font-size: 16px;
+            color: #666;
+        }
+        .low-confidence { 
+            color: #FF0000; 
+        }
+
+        /* LED and image container */
+        .led-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2 columns */
+            gap: 20px; /* Space between LEDs and images */
+            margin-top: 20px;
+        }
+
+        /* Individual LED styles */
+        .led {
+            width: 40px; /* Size of LEDs */
+            height: 40px;
+            border-radius: 50%;
+            background-color: #ddd;
+            margin: 0 auto; /* Center LEDs */
+        }
+
+        /* Image styles */
+        .image {
+            width: 100px; /* Size of images */
+            height: 100px;
+            margin: 0 auto; /* Center images */
+            display: block;
+            object-fit: contain; /* Maintain aspect ratio */
+        }
+
+        /* Grid cells for images */
+        .led-img-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Prediction text */
+        .prediction {
+            font-size: 24px;
+            margin: 10px 0; /* Margin above and below prediction text */
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Waste Classification</h1>
+
+    <video id="video" width="640" height="480" autoplay></video>
+
+    <div class="prediction-container">
+        <div class="prediction">
+            <p>Classification: <span id="prediction">None</span></p>
+        </div>
+        <div class="confidence">
+            <p>Confidence: <span id="confidence">N/A</span></p>
+        </div>
+
+        <!-- LED Bins Container -->
+        <div class="led-container">
+            <div class="led-img-container">
+                <div class="led" id="led1"></div>
+                <img class="image" src="{{ url_for('static', filename='images/Green.jpg') }}" alt="Glass">
+            </div>
+            <div class="led-img-container">
+                <div class="led" id="led2"></div>
+                <img class="image" src="{{ url_for('static', filename='images/Yellow.jpg') }}" alt="Paper">
+            </div>
+            <div class="led-img-container">
+                <div class="led" id="led3"></div>
+                <img class="image" src="{{ url_for('static', filename='images/Blue.jpg') }}" alt="Plastic">
+            </div>
+            <div class="led-img-container">
+                <div class="led" id="led4"></div>
+                <img class="image" src="{{ url_for('static', filename='images/Red.jpg') }}" alt="Waste">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const predictionElement = document.getElementById('prediction');
+        const confidenceElement = document.getElementById('confidence');
+        const led1 = document.getElementById('led1');
+        const led2 = document.getElementById('led2');
+        const led3 = document.getElementById('led3');
+        const led4 = document.getElementById('led4');
+
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = stream;
+            } catch (error) {
+                console.error("Could not access webcam:", error);
+            }
+        }
+        startVideo();
+
+        async function captureFrame() {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+                const data = await response.json();
+                updatePrediction(data.prediction, data.confidence_message);
+                updateLEDs(data.prediction);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function updatePrediction(prediction, confidenceMessage) {
+            predictionElement.innerText = prediction;
+            confidenceElement.innerText = `Confidence: ${confidenceMessage}`;
+            confidenceElement.classList.toggle('low-confidence', prediction === 'unknown');
+        }
+
+        function updateLEDs(prediction) {
+            led1.style.backgroundColor = (prediction === 'glass') ? '#4CAF50' : '#ddd';
+            led2.style.backgroundColor = (prediction === 'paper') ? '#FFC107' : '#ddd';
+            led3.style.backgroundColor = (prediction === 'plastic') ? '#2196F3' : '#ddd';
+            led4.style.backgroundColor = (prediction === 'waste') ? '#F44336' : '#ddd';
+        }
+
+        setInterval(captureFrame, 1000);
+    </script>
+</body>
+</html>
+
