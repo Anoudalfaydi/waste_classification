@@ -1,18 +1,16 @@
 blinker==1.8.2
-click==8.1.7
+click>=8.0,<9.0        # More flexibility with the click version
 Flask==3.0.3
 Flask-Cors==4.0.1
 gunicorn==22.0.0
-itsdangerous==2.2.0
+itsdangerous>=2.0,<3.0 # Allow some flexibility here, but stay within 2.x
 Jinja2==3.1.4
-MarkupSafe==2.1.5
-packaging==24.0
+MarkupSafe>=2.1,<3.0   # Keep compatibility with Jinja2 and Flask
+packaging>=23.0        # Avoid specific versions unless necessary
 Werkzeug==3.0.3
 Pillow>=8.0,<10.0
-torch==2.2.0
-torchvision==0.20.0
-
-
+torch>=2.2.0,<2.5.0    # Use a range to give more flexibility
+torchvision>=0.20.0,<0.21.0  # Range to avoid conflicts with torch version
 
 
 
